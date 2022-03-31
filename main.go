@@ -1,10 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"os"
-
 	"go-lex/lex"
+	"io/ioutil"
+	"os"
 )
 
 func main() {
@@ -14,12 +15,17 @@ func main() {
 	}
 
 	lexer := lex.NewLexer(file)
+	b, err := ioutil.ReadAll(bufio.NewReader(file))
+	if err != nil {
+		panic(err)
+	}
 
 	for {
-		pos, tok, lit := lexer.Lex()
+		pos, tok, lit := lexer.Lex(b)
 		if tok == lex.EOF {
 			break
 		}
 		fmt.Printf("%d:%d\t%s\t%s\n", pos.Line, pos.Column, tok, lit)
+		b = b[pos.Column:]
 	}
 }
