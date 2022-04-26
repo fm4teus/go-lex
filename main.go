@@ -30,16 +30,11 @@ func calculateLineColumn(newLineIndexes []int, index int) (line, column int) {
 
 var asciiSpace = [256]uint8{'\t': 1, '\n': 1, '\v': 1, '\f': 1, '\r': 1, ' ': 1}
 
-// TrimSpace returns a slice of the string s, with all leading
-// and trailing white space removed, as defined by Unicode.
 func trimLeftSpace(s string) string {
-	// Fast path for ASCII: look for the first ASCII non-space byte
 	start := 0
 	for ; start < len(s); start++ {
 		c := s[start]
 		if c >= utf8.RuneSelf {
-			// If we run into a non-ASCII byte, fall back to the
-			// slower unicode-aware method on the remaining bytes
 			return strings.TrimFunc(s[start:], unicode.IsSpace)
 		}
 		if asciiSpace[c] == 0 {
@@ -47,16 +42,21 @@ func trimLeftSpace(s string) string {
 		}
 	}
 
-	// Now look for the first ASCII non-space byte from the end
 	stop := len(s)
 
-	// At this point s[start:stop] starts and ends with an ASCII
-	// non-space bytes, so we're done. Non-ASCII cases have already
-	// been handled above.
 	return s[start:stop]
 }
 
 func main() {
+	args := os.Args
+	var filename string
+	if len(args) > 1 {
+		filename = args[1]
+	}
+	if filename == "" {
+		panic(fmt.Errorf("invalid file name"))
+	}
+
 	file, err := os.Open("input.test")
 	if err != nil {
 		panic(err)
@@ -70,6 +70,10 @@ func main() {
 
 	var index int
 	var newLineIndexes []int
+	errs := []struct {
+		line int
+		col  int
+	}{}
 
 	newLineChars := newLineRegex.FindAllIndex(b, -1)
 	for _, brIndex := range newLineChars {
@@ -91,9 +95,22 @@ func main() {
 
 		l, c := calculateLineColumn(newLineIndexes, index)
 
+		if tok == lex.ERROR {
+			errs = append(errs, struct {
+				line int
+				col  int
+			}{l, c})
+		}
+
 		fmt.Printf("%d:%d\t%s\t%s\n", l, c, tok, lit)
-		// b = []byte(strings.TrimSpace(string(b[end:])))
 		index += end
 		b = b[end:]
+	}
+
+	if len(errs) > 0 {
+		fmt.Printf("\nfound %d errors: \n", len(errs))
+		for _, e := range errs {
+			fmt.Printf("line: %d \t col: %d\n", e.line, e.col)
+		}
 	}
 }

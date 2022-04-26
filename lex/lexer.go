@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 
 	"regexp"
 )
@@ -11,11 +12,13 @@ import (
 type Token int
 
 var (
-	separator       = `[;,\s\(\)\[\]\{\}]`
-	separatorRegex  = regexp.MustCompile(`^` + separator)
-	stringRegex     = regexp.MustCompile(`^\s*".*"` + separator)
-	numberRegex     = regexp.MustCompile(`^\s*[0-9]+(\.[0-9]+)?` + separator)
-	identifierRegex = regexp.MustCompile(`^[A-Za-z_]\w*` + separator)
+	separator       = `[:;,\s\(\)\[\]\{\}]`
+	operator        = `[+\-*\/<>!=]`
+	separatorRegex  = regexp.MustCompile(fmt.Sprintf(`^%s`, separator))
+	stringRegex     = regexp.MustCompile(fmt.Sprintf(`^\s*"[^"]*"(%s|%s)`, separator, operator))
+	numberRegex     = regexp.MustCompile(fmt.Sprintf(`^\s*[0-9]+(\.[0-9]+)?(%s|%s)`, separator, operator))
+	identifierRegex = regexp.MustCompile(fmt.Sprintf(`^[A-Za-z_][A-Za-z0-9_]*(%s|%s)`, separator, operator))
+	operatorRegex   = regexp.MustCompile(fmt.Sprintf(`^((%s=?)|(\+\+)|(--))(%s|[0-9A-Za-z"])`, operator, separator))
 )
 
 const (
@@ -25,37 +28,42 @@ const (
 	STRING
 	SEP
 	IDENTIFIER
-
-	// Infix ops
-	ADD // +
-	SUB // -
-	MUL // *
-	DIV // /
-
-	ASSIGN // =
+	KEYWORD
+	OPERATOR
 )
+
+var m sync.Mutex
+
+var keywords = []string{
+	"for",
+	"if",
+	"switch",
+	"case",
+	"else",
+	"return",
+	"int",
+	"float",
+	"char",
+}
 
 var tokens = []string{
 	EOF:        "EOF",
-	ERROR:      "ERROR",
-	NUM:        "NUM",
-	STRING:     "STRING",
+	ERROR:      "ERROR\t",
+	NUM:        "NUM\t",
+	STRING:     "STRING\t",
 	SEP:        "SEPARATOR",
 	IDENTIFIER: "IDENTIFIER",
+	KEYWORD:    "KEYWORD\t",
+	OPERATOR:   "OPERATOR",
+}
 
-	// Infix ops
-	ADD: "+",
-	SUB: "-",
-	MUL: "*",
-	DIV: "/",
-
-	ASSIGN: "=",
+type responseToken struct {
+	End   int
+	Token Token
+	Lit   string
 }
 
 func (t Token) String() string {
-	if t == -1 {
-		return "ERROR"
-	}
 	return tokens[t]
 }
 
@@ -72,31 +80,54 @@ func NewLexer(reader io.Reader) *Lexer {
 
 func (l *Lexer) Lex(b []byte) (int, Token, string) {
 
-	p := stringRegex.FindIndex(b)
+	ch := make(chan responseToken)
 
-	if p != nil {
-		return p[1] - 1, STRING, string(b[p[0] : p[1]-1])
+	wg := &sync.WaitGroup{}
+	wg.Add(5)
+	go matchRegexp(stringRegex, b, STRING, ch, wg)
+	go matchRegexp(numberRegex, b, NUM, ch, wg)
+	go matchRegexp(separatorRegex, b, SEP, ch, wg)
+	go matchRegexp(identifierRegex, b, IDENTIFIER, ch, wg)
+	go matchRegexp(operatorRegex, b, OPERATOR, ch, wg)
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+
+	res, ok := <-ch
+	if !ok {
+		return 1, ERROR, "Error"
 	}
+	return res.End, res.Token, res.Lit
+}
 
-	q := numberRegex.FindIndex(b)
-
-	if q != nil {
-		return q[1] - 1, NUM, string(b[q[0] : q[1]-1])
-	}
-
-	r := separatorRegex.FindIndex(b)
-	if r != nil {
-		return r[1], SEP, string(b[r[0] : r[1]-1])
-	}
-
-	s := identifierRegex.FindIndex(b)
-	if s != nil {
-		return s[1] - 1, IDENTIFIER, string(b[s[0] : s[1]-1])
-	}
-
+func matchRegexp(re *regexp.Regexp, b []byte, token Token, ch chan responseToken, wg *sync.WaitGroup) {
 	if len(strings.TrimSpace(string(b))) == 0 {
-		return 0, EOF, tokens[EOF]
+		ch <- responseToken{0, EOF, tokens[EOF]}
+		return
 	}
-	fmt.Println("Err: ", string(b))
-	return 1, -1, "Error"
+
+	r := re.FindIndex(b)
+	var notSeparator int
+	if token != SEP {
+		notSeparator = 1
+	}
+
+	if r != nil {
+		var lit = string(b[r[0] : r[1]-notSeparator])
+		if token == IDENTIFIER {
+			for _, k := range keywords {
+				if lit == k {
+					ch <- responseToken{End: r[1] - notSeparator, Token: KEYWORD, Lit: lit}
+					return
+				}
+			}
+		}
+		ch <- responseToken{End: r[1] - notSeparator, Token: token, Lit: lit}
+		return
+	}
+
+	m.Lock()
+	wg.Done()
+	m.Unlock()
 }
