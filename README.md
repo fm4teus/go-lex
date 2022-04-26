@@ -6,7 +6,7 @@ Esse trabalho foi desenvolvido em [Go](https://go.dev/).
 
 - Com a linguagem instalada é possível executar usando:
 ```
-go run main.go
+go run main.go <CAMINHO-ARQUIVO>
 ```
 
 - Também é possível compilar o código com:
@@ -16,7 +16,7 @@ go build
 
 - E executar passando o caminho para um arquivo:
 ```
-./go-lex < CAMINHO PARA O ARQUIVO >
+./go-lex <CAMINHO-ARQUIVO>
 ```
 
 ## Estratégia
