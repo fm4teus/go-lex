@@ -18,7 +18,7 @@ var (
 	stringRegex     = regexp.MustCompile(fmt.Sprintf(`^\s*"[^"]*"(%s|%s)`, separator, operator))
 	numberRegex     = regexp.MustCompile(fmt.Sprintf(`^\s*[0-9]+(\.[0-9]+)?(%s|%s)`, separator, operator))
 	identifierRegex = regexp.MustCompile(fmt.Sprintf(`^[A-Za-z_][A-Za-z0-9_]*(%s|%s)`, separator, operator))
-	operatorRegex   = regexp.MustCompile(fmt.Sprintf(`^((%s=?)|(\+\+)|(--))(%s|[0-9A-Za-z"])`, operator, separator))
+	operatorRegex   = regexp.MustCompile(fmt.Sprintf(`^((%s=?)|(\+\+)|(--)|(\|\|)|(&&))(%s|[0-9A-Za-z"])`, operator, separator))
 )
 
 const (
@@ -31,8 +31,6 @@ const (
 	KEYWORD
 	OPERATOR
 )
-
-var m sync.Mutex
 
 var keywords = []string{
 	"for",
@@ -127,7 +125,5 @@ func matchRegexp(re *regexp.Regexp, b []byte, token Token, ch chan responseToken
 		return
 	}
 
-	m.Lock()
 	wg.Done()
-	m.Unlock()
 }

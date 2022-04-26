@@ -57,7 +57,7 @@ func main() {
 		panic(fmt.Errorf("invalid file name"))
 	}
 
-	file, err := os.Open("input.test")
+	file, err := os.Open(filename)
 	if err != nil {
 		panic(err)
 	}
