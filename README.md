@@ -91,34 +91,41 @@ O Analisador sintático está no pacote `syntatic`. É instanciado com os atribu
 
 ### Gramáticas
 
+<details>
+<summary> ops </summary>
+
+![image](https://user-images.githubusercontent.com/55215503/172430689-1a384a9e-ed31-4a6a-8e96-c8f5cbde6a2b.png)
+
+</details>
+
 - S -> A S
-- S -> I S
-- S -> FL S
-- S -> vazio
+  - S -> I S
+  - S -> FL S
+  - S -> vazio
 
 - E -> TE'
-- E' -> +TE'
-- E' -> vazio
-- T-> FT'
-- T' -> *FT'
-- T' -> vazio
-- F -> (E)
-- F-> número||id
+  - E' -> +TE'
+  - E' -> vazio
+  - T-> FT'
+  - T' -> *FT'
+  - T' -> vazio
+  - F -> (E)
+  - F-> número||id
 
 - A  -> A' id = E
-- A' -> type
-- A' -> vazio
+  - A' -> type
+  - A' -> vazio
 
 - L  -> ML'
-- L' -> logicML'
-- L' -> vazio
-- M  -> (L)
-- M  -> id/num
+  - L' -> logicML'
+  - L' -> vazio
+  - M  -> (L)
+  - M  -> id/num
 
 - I  -> if(L){S}J
-- J  -> elseJ'
-- J  -> vazio
-- J' -> I
-- J' -> {S}
+  - J  -> elseJ'
+  - J  -> vazio
+  - J' -> I
+  - J' -> {S}
 
 - FL -> for(A;L;A){S}
