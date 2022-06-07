@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"go-lex/lex"
+	"go-lex/syntatic"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -50,8 +51,14 @@ func trimLeftSpace(s string) string {
 func main() {
 	args := os.Args
 	var filename string
+	var debug bool
 	if len(args) > 1 {
 		filename = args[1]
+		if len(args) > 2 {
+			if args[2] == "-d" {
+				debug = true
+			}
+		}
 	}
 	if filename == "" {
 		panic(fmt.Errorf("invalid file name"))
@@ -74,6 +81,7 @@ func main() {
 		line int
 		col  int
 	}{}
+	tokenTable := []*syntatic.TokenInfo{}
 
 	newLineChars := newLineRegex.FindAllIndex(b, -1)
 	for _, brIndex := range newLineChars {
@@ -102,7 +110,10 @@ func main() {
 			}{l, c})
 		}
 
-		fmt.Printf("%d:%d\t%s\t%s\n", l, c, tok, lit)
+		tokenTable = append(tokenTable, &syntatic.TokenInfo{Line: l, Col: c, Token: tok})
+		if debug {
+			fmt.Printf("%d:%d\t%s\t%s\n", l, c, tok, lit)
+		}
 		index += end
 		b = b[end:]
 	}
@@ -112,5 +123,14 @@ func main() {
 		for _, e := range errs {
 			fmt.Printf("line: %d \t col: %d\n", e.line, e.col)
 		}
+	}
+
+	fmt.Println("   --------    ")
+
+	synt := syntatic.NewSyntatic(tokenTable, debug)
+
+	err = synt.Analyse()
+	if err != nil {
+		fmt.Println("Erro: ", err)
 	}
 }

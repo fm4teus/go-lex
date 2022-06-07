@@ -30,6 +30,19 @@ const (
 	IDENTIFIER
 	KEYWORD
 	OPERATOR
+	LPAREN
+	RPAREN
+	LBRACE
+	RBRACE
+	ASSIGN
+	OP_ADIT
+	OP_MULT
+	OP_LOGIC
+	KEYWORD_IF
+	KEYWORD_ELSE
+	SEMI
+	KEYWORD_FOR
+	TYPE
 )
 
 var keywords = []string{
@@ -45,14 +58,27 @@ var keywords = []string{
 }
 
 var tokens = []string{
-	EOF:        "EOF",
-	ERROR:      "ERROR\t",
-	NUM:        "NUM\t",
-	STRING:     "STRING\t",
-	SEP:        "SEPARATOR",
-	IDENTIFIER: "IDENTIFIER",
-	KEYWORD:    "KEYWORD\t",
-	OPERATOR:   "OPERATOR",
+	EOF:          "EOF",
+	ERROR:        "ERROR\t",
+	NUM:          "NUM\t",
+	STRING:       "STRING\t",
+	SEP:          "SEPARATOR",
+	IDENTIFIER:   "IDENTIFIER",
+	KEYWORD:      "KEYWORD\t",
+	OPERATOR:     "OPERATOR",
+	LPAREN:       "LPAREN\t",
+	RPAREN:       "RPAREN\t",
+	LBRACE:       "LBRACE\t",
+	RBRACE:       "RBRACE\t",
+	ASSIGN:       "ASSIGN\t",
+	OP_ADIT:      "OP_ADIT",
+	OP_MULT:      "OP_MULT",
+	OP_LOGIC:     "OP_LOGIC",
+	KEYWORD_IF:   "KEYWORD_IF",
+	KEYWORD_ELSE: "KEYWORD_ELSE",
+	SEMI:         "SEMI",
+	KEYWORD_FOR:  "KEYWORD_FOR",
+	TYPE:         "TYPE",
 }
 
 type responseToken struct {
@@ -113,14 +139,52 @@ func matchRegexp(re *regexp.Regexp, b []byte, token Token, ch chan responseToken
 
 	if r != nil {
 		var lit = string(b[r[0] : r[1]-notSeparator])
-		if token == IDENTIFIER {
+
+		switch token {
+		case IDENTIFIER:
 			for _, k := range keywords {
 				if lit == k {
-					ch <- responseToken{End: r[1] - notSeparator, Token: KEYWORD, Lit: lit}
+					token = KEYWORD
+					switch lit {
+					case "if":
+						token = KEYWORD_IF
+					case "else":
+						token = KEYWORD_ELSE
+					case "for":
+						token = KEYWORD_FOR
+					case "int", "float", "char":
+						token = TYPE
+					}
+					ch <- responseToken{End: r[1] - notSeparator, Token: token, Lit: lit}
 					return
 				}
 			}
+		case SEP:
+			switch lit {
+			case "(":
+				token = LPAREN
+			case ")":
+				token = RPAREN
+			case "{":
+				token = LBRACE
+			case "}":
+				token = RBRACE
+			case ";":
+				token = SEMI
+			}
+		case OPERATOR:
+			switch lit {
+			case "=":
+				token = ASSIGN
+			case "+", "-":
+				token = OP_ADIT
+			case "*", "/":
+				token = OP_MULT
+			case "==", "!=", "!", ">", "<", "<=", ">=":
+				token = OP_LOGIC
+			}
 		}
+
 		ch <- responseToken{End: r[1] - notSeparator, Token: token, Lit: lit}
 		return
 	}
