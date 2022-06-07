@@ -1,5 +1,3 @@
-## Analisador Léxico
-
 ## Como Executar
 
 Esse trabalho foi desenvolvido em [Go](https://go.dev/).
@@ -18,6 +16,10 @@ go build
 ```
 ./go-lex <CAMINHO-ARQUIVO>
 ```
+
+- Pode ser executado com a flag `-d` para imprimir informações adicionais
+
+## Analisador Léxico
 
 ## Estratégia
 
@@ -81,3 +83,42 @@ Exemplo de saída:
 5:22    OPERATOR        -
 5:23    NUM             4
 ```
+## Analisador sintático
+
+## Estratégia
+
+O Analisador sintático está no pacote `syntatic`. É instanciado com os atributos `[]TokenInfo` que é composto pela saída do analisador léxico (tabela de tokens), e pelo `index` que guarda a posição de leitura na tabela de tokens.
+
+### Gramáticas
+
+- S -> A S
+- S -> I S
+- S -> FL S
+- S -> vazio
+
+- E -> TE'
+- E' -> +TE'
+- E' -> vazio
+- T-> FT'
+- T' -> *FT'
+- T' -> vazio
+- F -> (E)
+- F-> número||id
+
+- A  -> A' id = E
+- A' -> type
+- A' -> vazio
+
+- L  -> ML'
+- L' -> logicML'
+- L' -> vazio
+- M  -> (L)
+- M  -> id/num
+
+- I  -> if(L){S}J
+- J  -> elseJ'
+- J  -> vazio
+- J' -> I
+- J' -> {S}
+
+- FL -> for(A;L;A){S}
