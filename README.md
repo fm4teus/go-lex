@@ -89,6 +89,8 @@ Exemplo de saída:
 
 O Analisador sintático está no pacote `syntatic`. É instanciado com os atributos `[]TokenInfo` que é composto pela saída do analisador léxico (tabela de tokens), e pelo `index` que guarda a posição de leitura na tabela de tokens.
 
+Foi utilizada uma estratégia recursiva para implementar as gramáticas LL1, onde cada não terminal foi implementado como uma função, lendo tokens terminais e chamando outras funções não terminais conforme as regras da gramática. 
+
 ### Gramáticas
 
 <details>
